@@ -17,15 +17,66 @@ from mvextractor.videocap import VideoCap
 from diffusers.image_processor import VaeImageProcessor
 
 
+def _ffmpeg_executable_and_env():
+    """
+    GPL-shared FFmpeg needs libav*.so next to bin/ffmpeg. The loader only finds them if
+    LD_LIBRARY_PATH includes that lib directory (or run ldconfig). Override with env:
+    FFMPEG_PREFIX (install root), or FFMPEG_BIN + FFMPEG_LIB for custom layouts.
+    """
+    prefix = os.environ.get(
+        "FFMPEG_PREFIX", "/data/phd/wsun/ffmpeg-master-latest-linux64-gpl-shared"
+    ).rstrip("/")
+    ffmpeg = os.environ.get("FFMPEG_BIN", os.path.join(prefix, "bin", "ffmpeg"))
+    lib_dir = os.environ.get("FFMPEG_LIB")
+    if not lib_dir:
+        lib_dir = os.path.join(prefix, "lib")
+        if not os.path.isdir(lib_dir):
+            alt = os.path.join(prefix, "lib64")
+            if os.path.isdir(alt):
+                lib_dir = alt
+    env = os.environ.copy()
+    if lib_dir and os.path.isdir(lib_dir):
+        prev = env.get("LD_LIBRARY_PATH", "")
+        parts = [p for p in prev.split(":") if p]
+        if lib_dir not in parts:
+            env["LD_LIBRARY_PATH"] = lib_dir if not prev else f"{lib_dir}:{prev}"
+    return ffmpeg, env
+
+
 def extract_motions(video_path, raw_file=True, temp_dir=None, fps=6, rescale=False):
     # First dump the video into 6-fps clips
     if raw_file:
         video_name = os.path.split(video_path)[-1].split('.')[0]
         temp_video_path = f'{temp_dir}/{video_name}.mp4'
-        cmd = f'/data/phd/wsun/ffmpeg-master-latest-linux64-gpl-shared/bin/ffmpeg -threads 8 -loglevel error -y -i {video_path} -filter:v fps={fps} -b:v 8000k -c:v mpeg4 -f rawvideo {temp_video_path}' # /home/jinyang06/ffmpeg/bin/ffmpeg
-        ret = subprocess.run(args=cmd, shell=True, timeout=2000)
+        ffmpeg_bin, proc_env = _ffmpeg_executable_and_env()
+        cmd = [
+            ffmpeg_bin,
+            "-threads",
+            "8",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            video_path,
+            "-filter:v",
+            f"fps={fps}",
+            "-b:v",
+            "8000k",
+            "-c:v",
+            "mpeg4",
+            "-f",
+            "rawvideo",
+            temp_video_path,
+        ]
+        ret = subprocess.run(
+            cmd, env=proc_env, timeout=2000, capture_output=True, text=True
+        )
         if ret.returncode != 0:
-            raise RuntimeError(f"Dump video to {fps} ERROR")
+            msg = (ret.stderr or ret.stdout or "").strip()
+            raise RuntimeError(
+                f"Dump video to {fps} ERROR"
+                + (f": { msg[:800]}" if msg else "")
+            )
     else:
         temp_video_path = video_path
 
@@ -43,7 +94,12 @@ def extract_motions(video_path, raw_file=True, temp_dir=None, fps=6, rescale=Fal
     frames, motions, frame_types = [], [], []
 
     while True:
-        ret, frame, motion_vectors, frame_type, timestamp = cap.read()
+        # motion-vector-extractor 1.x: 5 values (incl. timestamp); 2.x: 4 values
+        _read = cap.read()
+        if len(_read) == 4:
+            ret, frame, motion_vectors, frame_type = _read
+        else:
+            ret, frame, motion_vectors, frame_type, _ = _read
         if not ret:
             break
         h, w = frame.shape[:2]
