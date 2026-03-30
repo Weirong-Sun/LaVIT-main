@@ -22,7 +22,7 @@ def extract_motions(video_path, raw_file=True, temp_dir=None, fps=6, rescale=Fal
     if raw_file:
         video_name = os.path.split(video_path)[-1].split('.')[0]
         temp_video_path = f'{temp_dir}/{video_name}.mp4'
-        cmd = f'/home/jinyang06/ffmpeg/bin/ffmpeg -threads 8 -loglevel error -y -i {video_path} -filter:v fps={fps} -b:v 8000k -c:v mpeg4 -f rawvideo {temp_video_path}'
+        cmd = f'/data/phd/wsun/ffmpeg-master-latest-linux64-gpl-shared/bin/ffmpeg -threads 8 -loglevel error -y -i {video_path} -filter:v fps={fps} -b:v 8000k -c:v mpeg4 -f rawvideo {temp_video_path}' # /home/jinyang06/ffmpeg/bin/ffmpeg
         ret = subprocess.run(args=cmd, shell=True, timeout=2000)
         if ret.returncode != 0:
             raise RuntimeError(f"Dump video to {fps} ERROR")
@@ -129,14 +129,14 @@ class LaVITEvalVideoProcessor:
         # Next, sample the video clips from a long video
         total_frames = len(frame_types)
         start_indexs = np.where(np.array(frame_types)=='I')[0]
-        
+
         if len(start_indexs) == 0:
             raise ValueError(f"Empty Start indexs: {video_path}")
 
         # Only select the I-frame that follows 11 P-frame
         if len(start_indexs) > 1:
             end_indexs = start_indexs + 12
-            filter_start_indexs = start_indexs[:-1][end_indexs[:-1] == start_indexs[1:]]    
+            filter_start_indexs = start_indexs[:-1][end_indexs[:-1] == start_indexs[1:]]
         else:
             filter_start_indexs = start_indexs
 

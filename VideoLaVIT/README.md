@@ -6,14 +6,14 @@ This is the official repository for **Video-LaVIT**: a multi-modal large languag
 
 ## News and Updates
 
-* ```2024.04.15``` 🚀🚀🚀 We have released the pre-trained weight of **Video-LaVIT** v1.0 on the HuggingFace and provide the inference code. This is the initial version, trained only on the open-sourced WebVid-10M. 
+* ```2024.04.15``` 🚀🚀🚀 We have released the pre-trained weight of **Video-LaVIT** v1.0 on the HuggingFace and provide the inference code. This is the initial version, trained only on the open-sourced WebVid-10M.
 
 * ```2024.02.05``` 🌟🌟🌟  We have released the paper of **Video-LaVIT**.
 
 
 ## Future Schedules
 
-Now, Video-LaVIT is only trained on the open-sourced dataset: WebVid-10M, where the videos are low resolution (320p) and have watermarks. Due to these data constraints, the current version has a chance of generating videos with watermarks. We will continue to optimize the video generation performance by using more video training data without watermarks in the future. Stay tuned for this repository! 
+Now, Video-LaVIT is only trained on the open-sourced dataset: WebVid-10M, where the videos are low resolution (320p) and have watermarks. Due to these data constraints, the current version has a chance of generating videos with watermarks. We will continue to optimize the video generation performance by using more video training data without watermarks in the future. Stay tuned for this repository!
 
 - [ ] Further improve the video generation performance using watermark-free training videos.
 - [ ] Further improve the long video generation performance.
@@ -75,7 +75,7 @@ Since all modalities are represented as the unified discrete format during pre-t
 </table >
 
 
-### 4. Long Video Generation. 
+### 4. Long Video Generation.
 Since video is inherently a time series, this autoregressive pre-training of Video-LaVIT contributes to learning the sequential relationships of different video clips. Due to the limitations of displaying on GitHub, you can find more examples on the project page.
 
 
@@ -90,10 +90,14 @@ You should first install and configure the Pytorch Environment (including torch 
 ```shell
 git clone https://github.com/jy0205/LaVIT.git
 cd VideoLaVIT
+conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.7 -c pytorch -c nvidia
+# 检查requirements.txt中是否有 torch, torchvision, torchaudio
+grep -iE "torch|torchvision|torchaudio" requirements.txt
 pip install -r requirements.txt
 ```
 
 **Video-LaVIT** uses this [tool](https://github.com/LukasBommes/mv-extractor) to extract motion vectors. You need to install [FFMPEG](https://ffmpeg.org/download.html) to support re-encodeing video with MPEG 4 Part 2 codec.
+点击上方链接，下载并解压到/data/phd/wsun/ffmpeg-master-latest-linux64-gpl-shared/bin/ffmpeg目录下，同时修改/VideoLaVIT/models/transform.py文件中的路径（cmd = f'/home/jinyang06/ffmpeg/bin/ffmpeg）为实际路径
 
 
 * (Important) Since video generation is memory cost, we recommend using memory efficient attention by installing xFormers following the instructions in [here](https://huggingface.co/docs/diffusers/main/en/optimization/xformers). Then, you can set the argument `use_xformers=True` in `build_model` function  to save the GPU memory and speed up inference.
@@ -123,8 +127,9 @@ snapshot_download("rain1011/Video-LaVIT-v1", local_dir=model_path, local_dir_use
 * (Optional) Due to the watermarks and low resolution of webvid-10M, the current version of VideoLaVIT has a chance of generating videos with watermarks. To generate video without a watermark, we propose to manually intervene the keyframe tokens by a text-to-image model. We use the Playground-v2 here and you need to download the weights from the [this](https://huggingface.co/playgroundai/playground-v2-1024px-aesthetic/blob/main/playground-v2.fp16.safetensors).
 
   ```python
+  from huggingface_hub import snapshot_download
   from huggingface_hub import hf_hub_download
-  
+
   model_path = 'PATH'   # The local directory to save playground v2 checkpoint
   snapshot_download("playgroundai/playground-v2-1024px-aesthetic", local_dir=model_path, local_dir_use_symlinks=False, repo_type='model')
   ```
@@ -132,7 +137,7 @@ snapshot_download("rain1011/Video-LaVIT-v1", local_dir=model_path, local_dir_use
 
 ## Usage
 
-Only a few lines of code are needed to use **Video-LaVIT** for inference. We have provided detailed examples in the following jupyter notebooks for learning how to interact with Video-LaVIT. 
+Only a few lines of code are needed to use **Video-LaVIT** for inference. We have provided detailed examples in the following jupyter notebooks for learning how to interact with Video-LaVIT.
 
 
 * `understanding.ipynb` : examples for multi-modal understanding, including both image and video understanding.
