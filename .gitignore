@@ -6,3 +6,8 @@ __pycache__/
 # C extensions
 *.so
 *.pyc
+
+#juppter notebook
+tmp/
+*.tmp
+.ipynb_checkpoints/
